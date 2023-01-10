@@ -1,6 +1,7 @@
 package com.damselbeing.jokesbot.service;
 
 import com.damselbeing.jokesbot.config.BotConfig;
+import com.damselbeing.jokesbot.entity.Joke;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,13 +23,17 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private final BotConfig config;
     private final UserService userService;
+    private final JokeFeignClient jokeFeignClient;
 
     @Autowired
-    public TelegramBot(BotConfig config, UserService userService) {
+    public TelegramBot(BotConfig config,
+                       UserService userService,
+                       JokeFeignClient jokeFeignClient) {
         this.config = config;
         this.userService = userService;
+        this.jokeFeignClient = jokeFeignClient;
         List<BotCommand> listOfCommands = new ArrayList<>();
-        listOfCommands.add(new BotCommand("/startbot", "get a welcome message"));
+        listOfCommands.add(new BotCommand("/start", "get a welcome message"));
         listOfCommands.add(new BotCommand("/wannajoke", "get a random joke"));
         listOfCommands.add(new BotCommand("/deletedata", "delete your data stored"));
         try{
@@ -58,7 +63,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             String usersFirstName = update.getMessage().getChat().getFirstName();
 
             switch (msgText) {
-                case "/startbot" -> {
+                case "/start" -> {
                     startCommandReceived(chatId, usersFirstName);
                     userService.registerUser(msg);
                 }
@@ -75,7 +80,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void startCommandReceived(long chatId, String name) {
         String answer = "Hi, " + name + ", nice to meet you! Guess, you /wannajoke";
         sendMsg(chatId, answer);
-        log.info("Replied 'Start' to User with chatId " + chatId);
+        log.info("Replied 'Hello' to User with chatId " + chatId);
     }
 
     private void deleteCommandReceived(long chatId) {
@@ -85,9 +90,10 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void wannaCommandReceived(long chatId) {
-        String answer = "There will be a joke soon.";
+        Joke joke = jokeFeignClient.getJoke();
+        String answer = "A: " + joke.getSetup() + "\n" + "B: " + joke.getDelivery();
         sendMsg(chatId, answer);
-        log.info("Replied 'Wanna' to User with chatId " + chatId);
+        log.info("Replied 'Joke' " + joke + " to User with chatId " + chatId);
     }
 
     private void sendMsg(long chatId, String text) {
