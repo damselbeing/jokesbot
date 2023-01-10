@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -14,10 +15,12 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 public class TelegramBot extends TelegramLongPollingBot {
 
     private final BotConfig config;
+    private final UserService userService;
 
     @Autowired
-    public TelegramBot(BotConfig config) {
+    public TelegramBot(BotConfig config, UserService userService) {
         this.config = config;
+        this.userService = userService;
     }
 
     @Override
@@ -34,12 +37,19 @@ public class TelegramBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
 
         if(update.hasMessage() && update.getMessage().hasText()) {
-            String msgText = update.getMessage().getText();
+            Message msg = update.getMessage();
+            String msgText = msg.getText();
             long chatId = update.getMessage().getChatId();
             String usersFirstName = update.getMessage().getChat().getFirstName();
 
             switch (msgText) {
-                case "/start" -> startCommandReceived(chatId, usersFirstName);
+                case "/start" -> {
+                    startCommandReceived(chatId, usersFirstName);
+                    userService.registerUser(msg);
+                }
+                case "/deleteMe" -> {
+                    deleteCommandReceived(chatId);
+                }
                 default -> sendMsg(chatId, "Sorry, this command was not recognised.");
             }
         }
@@ -48,7 +58,13 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void startCommandReceived(long chatId, String name) {
         String answer = "Hi, " + name + ", nice to meet you!";
         sendMsg(chatId, answer);
-        log.info("Replied to user " + name);
+        log.info("Replied 'Start' to User with chatId " + chatId);
+    }
+
+    private void deleteCommandReceived(long chatId) {
+        userService.deleteUser(chatId);
+        String answer = "All your data has been successfully deleted!";
+        sendMsg(chatId, answer);
     }
 
     private void sendMsg(long chatId, String text) {
