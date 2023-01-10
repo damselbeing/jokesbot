@@ -5,10 +5,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
+import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -21,6 +27,15 @@ public class TelegramBot extends TelegramLongPollingBot {
     public TelegramBot(BotConfig config, UserService userService) {
         this.config = config;
         this.userService = userService;
+        List<BotCommand> listOfCommands = new ArrayList<>();
+        listOfCommands.add(new BotCommand("/startbot", "get a welcome message"));
+        listOfCommands.add(new BotCommand("/wannajoke", "get a random joke"));
+        listOfCommands.add(new BotCommand("/deletedata", "delete your data stored"));
+        try{
+            this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
+        } catch (TelegramApiException e) {
+            log.error("Error occurred by setting bots command list: " + e.getMessage());
+        }
     }
 
     @Override
@@ -43,20 +58,22 @@ public class TelegramBot extends TelegramLongPollingBot {
             String usersFirstName = update.getMessage().getChat().getFirstName();
 
             switch (msgText) {
-                case "/start" -> {
+                case "/startbot" -> {
                     startCommandReceived(chatId, usersFirstName);
                     userService.registerUser(msg);
                 }
-                case "/deleteMe" -> {
-                    deleteCommandReceived(chatId);
+                case "/wannajoke" -> {
+                    wannaCommandReceived(chatId);
+                    userService.registerUser(msg);
                 }
+                case "/deletedata" -> deleteCommandReceived(chatId);
                 default -> sendMsg(chatId, "Sorry, this command was not recognised.");
             }
         }
     }
 
     private void startCommandReceived(long chatId, String name) {
-        String answer = "Hi, " + name + ", nice to meet you!";
+        String answer = "Hi, " + name + ", nice to meet you! Guess, you /wannajoke";
         sendMsg(chatId, answer);
         log.info("Replied 'Start' to User with chatId " + chatId);
     }
@@ -65,6 +82,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         userService.deleteUser(chatId);
         String answer = "All your data has been successfully deleted!";
         sendMsg(chatId, answer);
+    }
+
+    private void wannaCommandReceived(long chatId) {
+        String answer = "There will be a joke soon.";
+        sendMsg(chatId, answer);
+        log.info("Replied 'Wanna' to User with chatId " + chatId);
     }
 
     private void sendMsg(long chatId, String text) {
