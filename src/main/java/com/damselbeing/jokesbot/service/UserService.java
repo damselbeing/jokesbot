@@ -1,6 +1,6 @@
 package com.damselbeing.jokesbot.service;
 
-import com.damselbeing.jokesbot.entity.User;
+import com.damselbeing.jokesbot.model.User;
 import com.damselbeing.jokesbot.repository.UserRepo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

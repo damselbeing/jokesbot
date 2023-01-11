@@ -1,7 +1,8 @@
 package com.damselbeing.jokesbot.service;
 
 import com.damselbeing.jokesbot.config.BotConfig;
-import com.damselbeing.jokesbot.entity.Joke;
+import com.damselbeing.jokesbot.model.Joke;
+import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -78,7 +79,9 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void startCommandReceived(long chatId, String name) {
-        String answer = "Hi, " + name + ", nice to meet you! Guess, you /wannajoke";
+        String answer = EmojiParser.parseToUnicode(
+                "Hi, " + name + ", nice to meet you!" + " :wave:" + "\n"
+                        + "Guess, you /wannajoke?");
         sendMsg(chatId, answer);
         log.info("Replied 'Hello' to User with chatId " + chatId);
     }
@@ -91,7 +94,9 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void wannaCommandReceived(long chatId) {
         Joke joke = jokeFeignClient.getJoke();
-        String answer = "A: " + joke.getSetup() + "\n" + "B: " + joke.getDelivery();
+        String answer = EmojiParser.parseToUnicode(
+                "Alice: " + joke.getSetup() + "\n"
+                + "Bob: " + joke.getDelivery() + " :joy:");
         sendMsg(chatId, answer);
         log.info("Replied 'Joke' " + joke + " to User with chatId " + chatId);
     }

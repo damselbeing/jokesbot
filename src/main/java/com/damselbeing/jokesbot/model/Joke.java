@@ -1,4 +1,4 @@
-package com.damselbeing.jokesbot.entity;
+package com.damselbeing.jokesbot.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
