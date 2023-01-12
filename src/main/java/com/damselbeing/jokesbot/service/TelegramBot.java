@@ -2,10 +2,13 @@ package com.damselbeing.jokesbot.service;
 
 import com.damselbeing.jokesbot.config.BotConfig;
 import com.damselbeing.jokesbot.model.Joke;
+import com.damselbeing.jokesbot.model.User;
+import com.damselbeing.jokesbot.repository.UserRepo;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -15,6 +18,7 @@ import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,16 +26,16 @@ import java.util.List;
 @Slf4j
 public class TelegramBot extends TelegramLongPollingBot {
 
+    private final UserRepo repo;
     private final BotConfig config;
-    private final UserService userService;
     private final JokeFeignClient jokeFeignClient;
 
     @Autowired
-    public TelegramBot(BotConfig config,
-                       UserService userService,
+    public TelegramBot(UserRepo repo,
+                       BotConfig config,
                        JokeFeignClient jokeFeignClient) {
+        this.repo = repo;
         this.config = config;
-        this.userService = userService;
         this.jokeFeignClient = jokeFeignClient;
         List<BotCommand> listOfCommands = new ArrayList<>();
         listOfCommands.add(new BotCommand("/start", "get a welcome message"));
@@ -66,11 +70,11 @@ public class TelegramBot extends TelegramLongPollingBot {
             switch (msgText) {
                 case "/start" -> {
                     startCommandReceived(chatId, usersFirstName);
-                    userService.registerUser(msg);
+                    registerUser(msg);
                 }
                 case "/wannajoke" -> {
                     wannaCommandReceived(chatId);
-                    userService.registerUser(msg);
+                    registerUser(msg);
                 }
                 case "/deletedata" -> deleteCommandReceived(chatId);
                 default -> sendMsg(chatId, "Sorry, this command was not recognised.");
@@ -80,16 +84,33 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void startCommandReceived(long chatId, String name) {
         String answer = EmojiParser.parseToUnicode(
-                "Hi, " + name + ", nice to meet you!" + " :wave:" + "\n"
+                "Hi" + ":wave: " + name + ", nice to meet you!" + "\n"
                         + "Guess, you /wannajoke?");
         sendMsg(chatId, answer);
         log.info("Replied 'Hello' to User with chatId " + chatId);
     }
 
-    private void deleteCommandReceived(long chatId) {
-        userService.deleteUser(chatId);
-        String answer = "All your data has been successfully deleted!";
+    @Transactional
+    public void deleteCommandReceived(long chatId) {
+        if(repo.existsById(chatId)) {
+            repo.deleteById(chatId);
+            log.info("User with chatId " + chatId + " was deleted.");
+        }
+        String answer = EmojiParser.parseToUnicode(
+                "All your data has been successfully deleted" + ":ok_hand:");
         sendMsg(chatId, answer);
+    }
+
+    @Transactional
+    public void registerUser(Message msg) {
+        if (!repo.existsById(msg.getChatId())) {
+            User user = new User();
+            user.setChatID(msg.getChatId());
+            user.setFirstName(msg.getChat().getFirstName());
+            user.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
+            repo.save(user);
+            log.info("A new User was registered: " + user);
+        }
     }
 
     private void wannaCommandReceived(long chatId) {

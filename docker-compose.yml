@@ -1,0 +1,31 @@
+version: '3.7'
+
+services:
+  postgres_db:
+    image: 'postgres'
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_USER=dambe
+      - POSTGRES_DB=jokesbotdb
+      - POSTGRES_PASSWORD=dambe-123
+  app:
+    build:
+      context: .
+    ports:
+      - '8080:8080'
+    depends_on:
+      - postgres_db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_db:5432/jokesbotdb
+      - SPRING_DATASOURCE_USERNAME=dambe
+      - SPRING_DATASOURCE_PASSWORD=dambe-123
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_DATASOURCE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
+      - TELEGRAM_BOT_TOKEN
+
+
+
+
+
+
