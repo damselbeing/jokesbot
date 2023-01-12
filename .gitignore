@@ -36,3 +36,7 @@ build/
 logs
 
 .DS_Store
+
+data
+
+init.sql
