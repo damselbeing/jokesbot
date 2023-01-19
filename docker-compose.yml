@@ -1,0 +1,39 @@
+version: '3.7'
+
+services:
+  app:
+    build:
+      context: .
+    container_name: jokesbot-ap
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./logs:/logs
+    depends_on:
+      - postgres_db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres_db:5432/jokesbotdb
+      - SPRING_DATASOURCE_USERNAME=dambe
+      - SPRING_DATASOURCE_PASSWORD=dambe-123
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_DATASOURCE_PLATFORM=org.hibernate.dialect.PostgreSQLDialect
+      - TELEGRAM_BOT_TOKEN
+  postgres_db:
+    image: 'postgres'
+    container_name: jokesbot-db
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./data:/var/lib/postgresql/data/
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      - POSTGRES_USER=dambe
+      - POSTGRES_DB=jokesbotdb
+      - POSTGRES_PASSWORD=dambe-123
+
+
+
+
+
+
+

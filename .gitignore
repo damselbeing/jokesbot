@@ -31,3 +31,12 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Logs ###
+logs
+
+.DS_Store
+
+data
+
+init.sql
