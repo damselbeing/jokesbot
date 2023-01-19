@@ -4,9 +4,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Entity(name = "usersDataTable")
 @Data
@@ -19,7 +20,8 @@ public class User {
 
     private String firstName;
 
-    private Timestamp registeredAt;
+    @EqualsAndHashCode.Exclude
+    private LocalDateTime registeredAt;
 
 
 }
