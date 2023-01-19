@@ -18,7 +18,7 @@ import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,7 +44,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try{
             this.execute(new SetMyCommands(listOfCommands, new BotCommandScopeDefault(), null));
         } catch (TelegramApiException e) {
-            log.error("Error occurred by setting bots command list: " + e.getMessage());
+            log.error("Error occurred by setting the bots command list: " + e.getMessage());
         }
     }
 
@@ -84,20 +84,26 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void startCommandReceived(long chatId, String name) {
         String answer = EmojiParser.parseToUnicode(
-                "Hi" + ":wave: " + name + ", nice to meet you!" + "\n"
+                "Hi" + ":vulcan_salute: " + name + ", nice to meet you!" + "\n"
                         + "Guess, you /wannajoke?");
         sendMsg(chatId, answer);
-        log.info("Replied 'Hello' to User with chatId " + chatId);
+        log.info("Replied 'Hello' to User " + chatId);
     }
 
     @Transactional
     public void deleteCommandReceived(long chatId) {
+        String answer;
+
         if(repo.existsById(chatId)) {
             repo.deleteById(chatId);
-            log.info("User with chatId " + chatId + " was deleted.");
+            answer = EmojiParser.parseToUnicode(
+                    "All your data has been successfully deleted" + ":ok_hand:");
+            log.info("User " + chatId + " was deleted.");
+        } else {
+            answer = EmojiParser.parseToUnicode(
+                    "There is NTH to delete" + ":spiral_note_pad:");
         }
-        String answer = EmojiParser.parseToUnicode(
-                "All your data has been successfully deleted" + ":ok_hand:");
+
         sendMsg(chatId, answer);
     }
 
@@ -107,7 +113,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             User user = new User();
             user.setChatID(msg.getChatId());
             user.setFirstName(msg.getChat().getFirstName());
-            user.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
+            user.setRegisteredAt(LocalDateTime.now());
             repo.save(user);
             log.info("A new User was registered: " + user);
         }
@@ -115,11 +121,19 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void wannaCommandReceived(long chatId) {
         Joke joke = jokeFeignClient.getJoke();
-        String answer = EmojiParser.parseToUnicode(
-                "Alice: " + joke.getSetup() + "\n"
-                + "Bob: " + joke.getDelivery() + " :joy:");
+        String answer;
+
+        if(joke == null) {
+            answer = "Sorry, STH went wrong. Please try again later.";
+            log.error("Error occurred by receiving a joke from FeignClient");
+        } else {
+            answer = EmojiParser.parseToUnicode(
+                    "Alice: " + joke.getSetup() + "\n"
+                            + "Bob: " + joke.getDelivery() + " :joy:");
+            log.info("Replied 'Joke' " + joke + " to User " + chatId);
+        }
+
         sendMsg(chatId, answer);
-        log.info("Replied 'Joke' " + joke + " to User with chatId " + chatId);
     }
 
     private void sendMsg(long chatId, String text) {
@@ -130,7 +144,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(msg);
         } catch (TelegramApiException e) {
-            log.error("Error occurred by sending message: " + e.getMessage());
+            log.error("Error occurred by sending a message: " + e.getMessage());
         }
     }
 }
